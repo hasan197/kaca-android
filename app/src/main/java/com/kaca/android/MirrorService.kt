@@ -90,6 +90,9 @@ class MirrorService : Service() {
         val out = DataOutputStream(s.getOutputStream().buffered())
         socketOut = out
 
+        // Simpan koneksi berhasil ke recent list
+        saveRecentConnection(this, host, port)
+
         // Send hello
         out.write(HELLO)
         out.flush()
@@ -249,6 +252,7 @@ class MirrorService : Service() {
         socketOut = null
         isRunning = false
         currentTarget = ""
+        clearConnectedState(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -322,6 +326,63 @@ class MirrorService : Service() {
         @Volatile
         @JvmStatic
         var lastError: String = ""
+
+        private const val PREFS = "kaca"
+        private const val PREFS_RECENT = "recent"
+        private const val PREFS_CONNECTED = "connected"
+        private const val PREFS_CONNECTED_HOST = "connected_host"
+
+        @JvmStatic
+        fun isConnected(ctx: Context): Boolean =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(PREFS_CONNECTED, false)
+
+        @JvmStatic
+        fun getConnectedHost(ctx: Context): String =
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(PREFS_CONNECTED_HOST, "") ?: ""
+
+        @JvmStatic
+        fun saveRecentConnection(ctx: Context, ip: String, port: Int) {
+            val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            prefs.edit()
+                .putBoolean(PREFS_CONNECTED, true)
+                .putString(PREFS_CONNECTED_HOST, "$ip:$port")
+                .apply()
+
+            val raw = prefs.getStringSet(PREFS_RECENT, emptySet()) ?: emptySet()
+            val entries = raw.mapNotNull { entry ->
+                val parts = entry.split(",")
+                if (parts.size >= 3) {
+                    Triple(parts[0], parts[1].toIntOrNull() ?: 27183, parts[2].toLongOrNull() ?: 0L)
+                } else null
+            }.toMutableList()
+            // Hapus entry dengan IP yang sama, lalu tambah yg baru
+            entries.removeAll { it.first == ip }
+            entries.add(Triple(ip, port, System.currentTimeMillis()))
+            // Sort by timestamp descending, keep 10
+            val trimmed = entries.sortedByDescending { it.third }.take(10)
+                .map { "${it.first},${it.second},${it.third}" }.toSet()
+            prefs.edit().putStringSet(PREFS_RECENT, trimmed).apply()
+        }
+
+        @JvmStatic
+        fun loadRecentConnections(ctx: Context): List<Triple<String, Int, Long>> {
+            val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val raw = prefs.getStringSet(PREFS_RECENT, emptySet()) ?: emptySet()
+            return raw.mapNotNull { entry ->
+                val parts = entry.split(",")
+                if (parts.size >= 3) {
+                    Triple(parts[0], parts[1].toIntOrNull() ?: 27183, parts[2].toLongOrNull() ?: 0L)
+                } else null
+            }.sortedByDescending { it.third }
+        }
+
+        @JvmStatic
+        fun clearConnectedState(ctx: Context) {
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean(PREFS_CONNECTED, false)
+                .putString(PREFS_CONNECTED_HOST, "")
+                .apply()
+        }
     }
 
     private fun setError(msg: String) {
