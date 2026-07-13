@@ -14,6 +14,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.card.MaterialCardView
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnScan: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
+    private lateinit var vStatusDot: View
 
     private var projectionManager: MediaProjectionManager? = null
 
@@ -73,10 +75,10 @@ class MainActivity : AppCompatActivity() {
         btnScan = findViewById(R.id.btnScan)
         tvStatus = findViewById(R.id.tvStatus)
         tvError = findViewById(R.id.tvError)
+        vStatusDot = findViewById(R.id.vStatusDot)
 
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
-        // Load saved settings
         val prefs = getSharedPreferences("kaca", MODE_PRIVATE)
         etHost.setText(prefs.getString("host", ""))
         etPort.setText(prefs.getString("port", "27183"))
@@ -94,7 +96,6 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Save settings
             getSharedPreferences("kaca", MODE_PRIVATE).edit()
                 .putString("host", host)
                 .putString("port", port.toString())
@@ -136,9 +137,9 @@ class MainActivity : AppCompatActivity() {
             putExtra(MirrorService.EXTRA_QUALITY, quality)
         }
         tvStatus.text = "Memulai..."
+        setStatusDot("idle")
         startForegroundService(intent)
 
-        // Poll service state — service start async, kita perlu update UI setelahnya
         val h = Handler(Looper.getMainLooper())
         h.postDelayed({ checkServiceState(h) }, 300)
     }
@@ -161,18 +162,32 @@ class MainActivity : AppCompatActivity() {
         val running = MirrorService.isRunning
         val err = MirrorService.lastError
         tvStatus.text = when {
-            running -> "Status: MENGIRIM ke ${MirrorService.currentTarget}"
-            err.isNotEmpty() -> "Error: terjadi error — lihat kotak merah di bawah"
+            running -> "Mengirim ke ${MirrorService.currentTarget}"
+            err.isNotEmpty() -> "Error — lihat detail di bawah"
             else -> "Status: berhenti"
         }
         if (err.isNotEmpty()) {
             tvError.text = err
             tvError.visibility = View.VISIBLE
+            setStatusDot("error")
+        } else if (running) {
+            tvError.visibility = View.GONE
+            setStatusDot("active")
         } else {
             tvError.visibility = View.GONE
+            setStatusDot("idle")
         }
         btnStart.isEnabled = !running
         btnStop.isEnabled = running
+    }
+
+    private fun setStatusDot(state: String) {
+        val color = when (state) {
+            "active" -> R.color.status_active
+            "error" -> R.color.status_error
+            else -> R.color.status_idle
+        }
+        vStatusDot.setBackgroundResource(color)
     }
 
     override fun onResume() {

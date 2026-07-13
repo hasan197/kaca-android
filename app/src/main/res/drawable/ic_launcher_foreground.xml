@@ -4,7 +4,32 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Phone -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,28 L78,54 L54,80 L30,54 Z" />
+        android:pathData="M38,30 h32 c2,0 4,2 4,4 v52 c0,2 -2,4 -4,4 h-32 c-2,0 -4,-2 -4,-4 v-52 c0,-2 2,-4 4,-4 z" />
+    <!-- Phone screen -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M41,36 h26 v40 h-26 z" />
+    <!-- Phone home button -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,80 m-3,0 a3,3 0,1,1 6,0 a3,3 0,1,1 -6,0" />
+    <!-- Arrow from phone to monitor -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,58 v-14 l-4,3 m4,-3 l4,3" />
+    <!-- Monitor -->
+    <path
+        android:strokeWidth="2.5"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:pathData="M24,38 h68 c2,0 4,2 4,4 v30 c0,2 -2,4 -4,4 h-68 c-2,0 -4,-2 -4,-4 v-30 c0,-2 2,-4 4,-4 z" />
+    <!-- Monitor stand -->
+    <path
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:pathData="M54,76 v6 m-8,0 h16" />
 </vector>

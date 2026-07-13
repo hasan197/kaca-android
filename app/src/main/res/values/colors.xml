@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1976D2</color>
+    <!-- Primary -->
+    <color name="primary">#1565C0</color>
+    <color name="primary_dark">#0D47A1</color>
+    <color name="primary_light">#42A5F5</color>
+
+    <!-- Secondary / Accent -->
+    <color name="secondary">#00897B</color>
+    <color name="secondary_light">#4DB6AC</color>
+
+    <!-- Surface & Background -->
+    <color name="background">#F5F7FA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1C1B1F</color>
+
+    <!-- Status -->
+    <color name="status_active">#2E7D32</color>
+    <color name="status_error">#C62828</color>
+    <color name="status_idle">#757575</color>
+
+    <!-- Icon -->
+    <color name="ic_launcher_background">#1565C0</color>
     <color name="ic_launcher_foreground">#FFFFFF</color>
 </resources>
