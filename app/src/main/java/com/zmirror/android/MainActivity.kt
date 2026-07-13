@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -43,8 +44,9 @@ class MainActivity : AppCompatActivity() {
     private val qrScanLauncher = registerForActivityResult(
         com.journeyapps.barcodescanner.ScanContract()
     ) { result ->
-        if (result.contents != null) {
-            val qrText = result.contents.trim()
+        val text = result.contents
+        if (text != null) {
+            val qrText = text.trim()
             if (qrText.contains(":")) {
                 val parts = qrText.split(":", limit = 2)
                 etHost.setText(parts[0])
@@ -53,7 +55,9 @@ class MainActivity : AppCompatActivity() {
                 etHost.setText(qrText)
                 etPort.setText("27183")
             }
-            Toast.makeText(this, "QR scanned: $qrText", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "QR: $qrText", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "QR scan gagal (null)", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -106,12 +110,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnScan.setOnClickListener {
-            qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
-                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
-                setPrompt("Scan QR code dari Mac")
-                setBeepEnabled(false)
-                setOrientationLocked(true)
-            })
+            Log.i("ZMirror", "Scan QR clicked")
+            try {
+                qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                    setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                    setPrompt("Scan QR code dari Mac")
+                    setBeepEnabled(false)
+                    setOrientationLocked(true)
+                })
+            } catch (e: Exception) {
+                Log.e("ZMirror", "Scan launch failed", e)
+                Toast.makeText(this, "Gagal buka scanner: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
