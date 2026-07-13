@@ -9,12 +9,14 @@ import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.card.MaterialCardView
+import androidx.core.content.ContextCompat
+import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,7 +28,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnScan: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
-    private lateinit var vStatusDot: View
+    private lateinit var vStatusDot: ImageView
 
     private var projectionManager: MediaProjectionManager? = null
 
@@ -39,7 +41,7 @@ class MainActivity : AppCompatActivity() {
             MirrorService.lastError = ""
             startMirror()
         } else {
-            Toast.makeText(this, "Permission ditolak", Toast.LENGTH_SHORT).show()
+            Snackbar.make(findViewById(android.R.id.content), "Izin screen capture ditolak", Snackbar.LENGTH_SHORT).show()
         }
     }
 
@@ -57,9 +59,9 @@ class MainActivity : AppCompatActivity() {
                 etHost.setText(qrText)
                 etPort.setText("27183")
             }
-            Toast.makeText(this, "QR: $qrText", Toast.LENGTH_SHORT).show()
+            Snackbar.make(findViewById(android.R.id.content), "QR: $qrText", Snackbar.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "QR scan gagal (null)", Toast.LENGTH_SHORT).show()
+            Snackbar.make(findViewById(android.R.id.content), "QR tidak terbaca — coba lagi", Snackbar.LENGTH_LONG).show()
         }
     }
 
@@ -92,7 +94,8 @@ class MainActivity : AppCompatActivity() {
             val quality = etQuality.text.toString().trim().toIntOrNull() ?: 75
 
             if (host.isEmpty()) {
-                Toast.makeText(this, "Isi host IP dulu", Toast.LENGTH_SHORT).show()
+                etHost.error = "Host IP wajib diisi"
+                etHost.requestFocus()
                 return@setOnClickListener
             }
 
@@ -120,7 +123,7 @@ class MainActivity : AppCompatActivity() {
                 })
             } catch (e: Exception) {
                 Log.e("Kaca", "Scan launch failed", e)
-                Toast.makeText(this, "Gagal buka scanner: ${e.message}", Toast.LENGTH_LONG).show()
+                Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -163,7 +166,7 @@ class MainActivity : AppCompatActivity() {
         val err = MirrorService.lastError
         tvStatus.text = when {
             running -> "Mengirim ke ${MirrorService.currentTarget}"
-            err.isNotEmpty() -> "Error — lihat detail di bawah"
+            err.isNotEmpty() -> "Terjadi error — lihat detail di bawah"
             else -> "Status: berhenti"
         }
         if (err.isNotEmpty()) {
@@ -182,12 +185,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setStatusDot(state: String) {
-        val color = when (state) {
+        val colorRes = when (state) {
             "active" -> R.color.status_active
             "error" -> R.color.status_error
             else -> R.color.status_idle
         }
-        vStatusDot.setBackgroundResource(color)
+        vStatusDot.setColorFilter(ContextCompat.getColor(this, colorRes))
     }
 
     override fun onResume() {
