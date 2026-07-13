@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Brand -->
-    <color name="brand_blue">#1D68C2</color>
-    <color name="brand_blue_soft">#EEF3FC</color>
-    <color name="brand_bg">#F8FAFF</color>
+    <color name="brand_blue">#007AFF</color>
+    <color name="brand_blue_soft">#EBF5FF</color>
+    <color name="brand_bg">#F2F2F7</color>
 
     <!-- Neutral -->
-    <color name="neutral_900">#1A1C1E</color>
+    <color name="neutral_900">#1C1C1E</color>
+    <color name="neutral_800">#2C2C2E</color>
+    <color name="neutral_600">#636366</color>
     <color name="neutral_500">#8E8E93</color>
     <color name="neutral_400">#AEAEB2</color>
     <color name="neutral_300">#C7C7CC</color>
@@ -21,6 +23,6 @@
     <color name="status_idle">#AEAEB2</color>
 
     <!-- Icon -->
-    <color name="ic_launcher_background">#1D68C2</color>
+    <color name="ic_launcher_background">#007AFF</color>
     <color name="ic_launcher_foreground">#FFFFFF</color>
 </resources>

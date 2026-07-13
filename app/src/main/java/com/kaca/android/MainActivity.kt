@@ -7,13 +7,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 
@@ -23,21 +25,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPort: EditText
     private lateinit var etQuality: EditText
     private lateinit var btnStart: MaterialButton
-    private lateinit var btnScan: MaterialButton
-    private lateinit var tvStatus: TextView
-    private lateinit var tvError: TextView
-    private lateinit var vStatusDot: View
-    private lateinit var vStatusPulse: View
-    private lateinit var tvTabScan: TextView
-    private lateinit var tvTabManual: TextView
-    private lateinit var vTabIndicator: View
-    private lateinit var layoutScanTab: View
-    private lateinit var layoutManualTab: View
+    private lateinit var tvFooterStatus: TextView
+    private lateinit var vFooterDot: View
+    private lateinit var tvConnectingDetail: TextView
+
+    private lateinit var stateInitial: View
+    private lateinit var stateScanning: View
+    private lateinit var stateManual: View
+    private lateinit var stateConnecting: View
+
+    private lateinit var vBgBlobTop: View
+    private lateinit var vBgBlobBottom: View
+
+    private lateinit var vScanLine: View
 
     private var projectionManager: MediaProjectionManager? = null
     private var pendingQrHost: String? = null
     private var pendingQrPort: String? = null
-    private var activeTab = 0
+    private val scanHandler = Handler(Looper.getMainLooper())
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -60,6 +65,7 @@ class MainActivity : AppCompatActivity() {
             val quality = etQuality.text.toString().trim().toIntOrNull() ?: 75
             startMirror(host, port, quality)
         } else {
+            showState("initial")
             Snackbar.make(findViewById(android.R.id.content), "Izin screen capture ditolak", Snackbar.LENGTH_SHORT).show()
         }
     }
@@ -91,6 +97,7 @@ class MainActivity : AppCompatActivity() {
                 screenCaptureLauncher.launch(intent)
             }
         } else {
+            showState("initial")
             Snackbar.make(findViewById(android.R.id.content), "QR tidak terbaca — coba lagi", Snackbar.LENGTH_LONG).show()
         }
     }
@@ -103,16 +110,18 @@ class MainActivity : AppCompatActivity() {
         etPort = findViewById(R.id.etPort)
         etQuality = findViewById(R.id.etQuality)
         btnStart = findViewById(R.id.btnStart)
-        btnScan = findViewById(R.id.btnScan)
-        tvStatus = findViewById(R.id.tvStatus)
-        tvError = findViewById(R.id.tvError)
-        vStatusDot = findViewById(R.id.vStatusDot)
-        vStatusPulse = findViewById(R.id.vStatusPulse)
-        tvTabScan = findViewById(R.id.tvTabScan)
-        tvTabManual = findViewById(R.id.tvTabManual)
-        vTabIndicator = findViewById(R.id.vTabIndicator)
-        layoutScanTab = findViewById(R.id.layoutScanTab)
-        layoutManualTab = findViewById(R.id.layoutManualTab)
+        tvFooterStatus = findViewById(R.id.tvFooterStatus)
+        vFooterDot = findViewById(R.id.vFooterDot)
+        tvConnectingDetail = findViewById(R.id.tvConnectingDetail)
+
+        stateInitial = findViewById(R.id.stateInitial)
+        stateScanning = findViewById(R.id.stateScanning)
+        stateManual = findViewById(R.id.stateManual)
+        stateConnecting = findViewById(R.id.stateConnecting)
+
+        vBgBlobTop = findViewById(R.id.vBgBlobTop)
+        vBgBlobBottom = findViewById(R.id.vBgBlobBottom)
+        vScanLine = findViewById(R.id.vScanLine)
 
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
@@ -121,23 +130,41 @@ class MainActivity : AppCompatActivity() {
         etPort.setText(prefs.getString("port", "27183"))
         etQuality.setText(prefs.getString("quality", "75"))
 
-        updateStatusUI()
+        updateFooterStatus()
+        startBlobAnimation()
 
-        tvTabScan.setOnClickListener { selectTab(0) }
-        tvTabManual.setOnClickListener { selectTab(1) }
+        findViewById<View>(R.id.btnScanAction).setOnClickListener {
+            showState("scanning")
+            startScanLineAnimation()
+            scanHandler.postDelayed({
+                try {
+                    qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                        setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                        setPrompt("Scan QR code dari Mac")
+                        setBeepEnabled(false)
+                    })
+                } catch (e: Exception) {
+                    Log.e("Kaca", "Scan launch failed", e)
+                    showState("initial")
+                    Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
+                }
+            }, 600)
+        }
 
-        btnScan.setOnClickListener {
-            Log.i("Kaca", "Scan QR clicked")
-            try {
-                qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
-                    setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
-                    setPrompt("Scan QR code dari Mac")
-                    setBeepEnabled(false)
-                })
-            } catch (e: Exception) {
-                Log.e("Kaca", "Scan launch failed", e)
-                Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
-            }
+        findViewById<View>(R.id.btnManualAction).setOnClickListener {
+            showState("manual")
+        }
+
+        findViewById<View>(R.id.btnCancelScan).setOnClickListener {
+            showState("initial")
+        }
+
+        findViewById<View>(R.id.btnBackManual).setOnClickListener {
+            showState("initial")
+        }
+
+        findViewById<View>(R.id.btnCancelConnect).setOnClickListener {
+            showState("initial")
         }
 
         btnStart.setOnClickListener {
@@ -161,30 +188,64 @@ class MainActivity : AppCompatActivity() {
             pendingQrPort = port.toString()
 
             val intent = projectionManager?.createScreenCaptureIntent() ?: return@setOnClickListener
+            showState("connecting")
+            tvConnectingDetail.text = "Menyiapkan stream terenkripsi ke Mac Anda ($host:$port)"
             screenCaptureLauncher.launch(intent)
         }
     }
 
-    private fun selectTab(index: Int) {
-        if (index == activeTab) return
-        activeTab = index
+    private fun showState(state: String) {
+        stateInitial.visibility = if (state == "initial") View.VISIBLE else View.GONE
+        stateScanning.visibility = if (state == "scanning") View.VISIBLE else View.GONE
+        stateManual.visibility = if (state == "manual") View.VISIBLE else View.GONE
+        stateConnecting.visibility = if (state == "connecting") View.VISIBLE else View.GONE
+    }
 
-        val isScan = index == 0
-        layoutScanTab.visibility = if (isScan) View.VISIBLE else View.GONE
-        layoutManualTab.visibility = if (isScan) View.GONE else View.VISIBLE
-
-        val tabWidth = tvTabScan.width
-        val indicatorTargetX = if (isScan) 0f else (tabWidth.toFloat())
-
-        vTabIndicator.animate()
-            .translationX(indicatorTargetX)
-            .setDuration(250)
+    private fun startBlobAnimation() {
+        vBgBlobTop.animate()
+            .scaleX(1.2f).scaleY(1.2f)
+            .translationX(40f).translationY(30f)
+            .setDuration(8000)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                vBgBlobTop.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .translationX(0f).translationY(0f)
+                    .setDuration(8000)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .withEndAction { startBlobAnimation() }
+                    .start()
+            }
             .start()
 
-        tvTabScan.setTextColor(ContextCompat.getColor(this,
-            if (isScan) R.color.brand_blue else R.color.neutral_400))
-        tvTabManual.setTextColor(ContextCompat.getColor(this,
-            if (isScan) R.color.neutral_400 else R.color.brand_blue))
+        vBgBlobBottom.animate()
+            .scaleX(1.3f).scaleY(1.3f)
+            .translationX(-30f).translationY(-40f)
+            .setDuration(10000)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                vBgBlobBottom.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .translationX(0f).translationY(0f)
+                    .setDuration(10000)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .withEndAction { }
+                    .start()
+            }
+            .start()
+    }
+
+    private fun startScanLineAnimation() {
+        vScanLine.translationY = 0f
+        vScanLine.animate()
+            .translationY(240f)
+            .setDuration(2000)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                vScanLine.translationY = 0f
+                startScanLineAnimation()
+            }
+            .start()
     }
 
     private fun startMirror(host: String, port: Int, quality: Int) {
@@ -194,8 +255,6 @@ class MainActivity : AppCompatActivity() {
             putExtra(MirrorService.EXTRA_PORT, port)
             putExtra(MirrorService.EXTRA_QUALITY, quality)
         }
-        tvStatus.text = "Memulai..."
-        setStatusDot("idle")
         startForegroundService(intent)
 
         val h = Handler(Looper.getMainLooper())
@@ -203,8 +262,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkServiceState(h: Handler) {
-        updateStatusUI()
-        if (MirrorService.isRunning || MirrorService.lastError.isNotEmpty()) return
+        updateFooterStatus()
+        if (MirrorService.isRunning || MirrorService.lastError.isNotEmpty()) {
+            showState("initial")
+            return
+        }
         h.postDelayed({ checkServiceState(h) }, 500)
     }
 
@@ -213,47 +275,31 @@ class MainActivity : AppCompatActivity() {
             action = MirrorService.ACTION_STOP
         }
         startService(intent)
-        updateStatusUI()
+        updateFooterStatus()
     }
 
-    private fun updateStatusUI() {
+    private fun updateFooterStatus() {
         val running = MirrorService.isRunning
         val err = MirrorService.lastError
-        tvStatus.text = when {
+        tvFooterStatus.text = when {
             running -> "MENGIRIM KE ${MirrorService.currentTarget}"
-            err.isNotEmpty() -> "TERJADI ERROR"
-            else -> "SISTEM SIAP"
+            err.isNotEmpty() -> "ERROR: $err"
+            else -> "SISTEM STANDBY"
         }
-        if (err.isNotEmpty()) {
-            tvError.text = err
-            tvError.visibility = View.VISIBLE
-            setStatusDot("error")
-        } else if (running) {
-            tvError.visibility = View.GONE
-            setStatusDot("active")
-        } else {
-            tvError.visibility = View.GONE
-            setStatusDot("idle")
-        }
-    }
-
-    private fun setStatusDot(state: String) {
-        val colorRes = when (state) {
-            "active" -> R.color.status_active
-            "error" -> R.color.status_error
+        val dotColor = when {
+            err.isNotEmpty() -> R.color.status_error
+            running -> R.color.status_active
             else -> R.color.status_idle
         }
-        vStatusDot.background?.setColorFilter(ContextCompat.getColor(this, colorRes), android.graphics.PorterDuff.Mode.SRC_IN)
-        vStatusPulse.background?.setColorFilter(ContextCompat.getColor(this, colorRes), android.graphics.PorterDuff.Mode.SRC_IN)
-        vStatusPulse.isVisible = state == "active"
+        vFooterDot.setBackgroundTintList(ContextCompat.getColorStateList(this, dotColor))
     }
 
     override fun onResume() {
         super.onResume()
-        updateStatusUI()
+        updateFooterStatus()
     }
 
-    companion object {
-        private const val REQUEST_CODE_PROJECTION = 1001
+    override fun onPause() {
+        super.onPause()
     }
 }
