@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
@@ -43,15 +42,16 @@
             android:layout_marginTop="4dp"
             android:layout_marginBottom="28dp" />
 
-        <!-- ── Scan QR Card ── -->
+        <!-- ══════ QR SCAN (primary) ══════ -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            app:cardElevation="2dp"
-            app:cardCornerRadius="16dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="20dp">
+            android:layout_marginBottom="12dp"
+            app:cardElevation="3dp"
+            app:cardCornerRadius="20dp"
+            app:strokeColor="@color/primary"
+            app:strokeWidth="1dp"
+            app:contentPadding="24dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -59,41 +59,84 @@
                 android:orientation="vertical"
                 android:gravity="center">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnScan"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:text="Scan QR Code"
-                    android:textSize="16sp"
-                    app:icon="@android:drawable/ic_menu_camera"
-                    app:iconGravity="textStart"
-                    app:cornerRadius="12dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scan QR"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary"
+                    android:layout_marginBottom="4dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Kamera untuk scan QR dari Mac"
-                    android:textSize="12sp"
+                    android:text="Langsung connect — tanpa isi apa-apa"
+                    android:textSize="13sp"
                     android:textColor="#999"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginBottom="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScan"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:text="Scan QR Code"
+                    android:textSize="18sp"
+                    app:icon="@android:drawable/ic_menu_camera"
+                    app:iconGravity="textStart"
+                    app:iconSize="28dp"
+                    app:cornerRadius="14dp" />
 
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
+        <!-- ══════ DIVIDER ══════ -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Atau isi manual"
-            android:textSize="13sp"
-            android:textColor="#999"
-            android:gravity="center"
-            android:layout_marginVertical="12dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
 
-        <!-- ── Connection Card ── -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#DDD" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  atau  "
+                android:textSize="13sp"
+                android:textColor="#bbb" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#DDD" />
+
+        </LinearLayout>
+
+        <!-- ══════ MANUAL INPUT (secondary) ══════ -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleManual"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Isi Manual"
+            android:textSize="15sp"
+            app:icon="@android:drawable/arrow_down_float"
+            app:iconGravity="textEnd"
+            android:layout_marginBottom="12dp" />
+
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/manualCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:layout_marginBottom="12dp"
             app:cardElevation="1dp"
             app:cardCornerRadius="16dp"
@@ -105,7 +148,6 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- Host -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -119,12 +161,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"
-                        android:textSize="16sp"
-                        tools:ignore="Autofill" />
+                        android:textSize="16sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Port + Quality side by side -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -137,7 +177,6 @@
                         android:layout_weight="1"
                         android:hint="Port"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-                        app:endIconMode="clear_text"
                         android:layout_marginEnd="6dp">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -171,36 +210,36 @@
 
                 </LinearLayout>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStart"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="Mulai Mirror"
+                    android:textSize="16sp"
+                    app:icon="@android:drawable/ic_media_play"
+                    app:iconGravity="textStart"
+                    app:cornerRadius="12dp"
+                    android:layout_marginTop="16dp" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ── Action Buttons ── -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnStart"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Mulai Mirror"
-            android:textSize="16sp"
-            app:icon="@android:drawable/ic_media_play"
-            app:iconGravity="textStart"
-            app:cornerRadius="12dp"
-            android:layout_marginBottom="8dp" />
-
+        <!-- ══════ ACTION BUTTONS (visible when streaming) ══════ -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStop"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:text="Berhenti"
             android:textSize="16sp"
             app:icon="@android:drawable/ic_media_pause"
             app:iconGravity="textStart"
             app:cornerRadius="12dp"
-            android:enabled="false"
+            android:visibility="gone"
             android:layout_marginBottom="16dp" />
 
-        <!-- ── Status Bar ── -->
+        <!-- ══════ STATUS ══════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -220,13 +259,13 @@
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Status: berhenti"
+                android:text="Siap"
                 android:textSize="14sp"
                 android:textColor="#888" />
 
         </LinearLayout>
 
-        <!-- ── Error ── -->
+        <!-- ══════ ERROR ══════ -->
         <TextView
             android:id="@+id/tvError"
             android:layout_width="match_parent"

@@ -7,15 +7,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.util.Log
-import android.widget.Toast
+import com.google.android.material.button.MaterialButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
@@ -23,14 +23,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etHost: EditText
     private lateinit var etPort: EditText
     private lateinit var etQuality: EditText
-    private lateinit var btnStart: Button
-    private lateinit var btnStop: Button
-    private lateinit var btnScan: Button
+    private lateinit var btnStart: MaterialButton
+    private lateinit var btnStop: MaterialButton
+    private lateinit var btnScan: MaterialButton
+    private lateinit var btnToggleManual: MaterialButton
+    private lateinit var manualCard: MaterialCardView
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
     private lateinit var vStatusDot: ImageView
 
     private var projectionManager: MediaProjectionManager? = null
+    private var manualExpanded = false
+    private var pendingQrHost: String? = null
+    private var pendingQrPort: String? = null
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -51,15 +56,30 @@ class MainActivity : AppCompatActivity() {
         val text = result.contents
         if (text != null) {
             val qrText = text.trim()
+            val host: String
+            val port: String
             if (qrText.contains(":")) {
                 val parts = qrText.split(":", limit = 2)
-                etHost.setText(parts[0])
-                etPort.setText(parts[1])
+                host = parts[0]
+                port = parts[1]
             } else {
-                etHost.setText(qrText)
-                etPort.setText("27183")
+                host = qrText
+                port = "27183"
             }
-            Snackbar.make(findViewById(android.R.id.content), "QR: $qrText", Snackbar.LENGTH_SHORT).show()
+            etHost.setText(host)
+            etPort.setText(port)
+            getSharedPreferences("kaca", MODE_PRIVATE).edit()
+                .putString("host", host)
+                .putString("port", port)
+                .apply()
+
+            Snackbar.make(findViewById(android.R.id.content), "QR: $host:$port — menghubungkan...", Snackbar.LENGTH_SHORT).show()
+
+            // Auto-start: langsung minta izin screen capture
+            val intent = projectionManager?.createScreenCaptureIntent()
+            if (intent != null) {
+                screenCaptureLauncher.launch(intent)
+            }
         } else {
             Snackbar.make(findViewById(android.R.id.content), "QR tidak terbaca — coba lagi", Snackbar.LENGTH_LONG).show()
         }
@@ -75,6 +95,8 @@ class MainActivity : AppCompatActivity() {
         btnStart = findViewById(R.id.btnStart)
         btnStop = findViewById(R.id.btnStop)
         btnScan = findViewById(R.id.btnScan)
+        btnToggleManual = findViewById(R.id.btnToggleManual)
+        manualCard = findViewById(R.id.manualCard)
         tvStatus = findViewById(R.id.tvStatus)
         tvError = findViewById(R.id.tvError)
         vStatusDot = findViewById(R.id.vStatusDot)
@@ -87,6 +109,29 @@ class MainActivity : AppCompatActivity() {
         etQuality.setText(prefs.getString("quality", "75"))
 
         updateStatusUI()
+
+        btnScan.setOnClickListener {
+            Log.i("Kaca", "Scan QR clicked")
+            try {
+                qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                    setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                    setPrompt("Scan QR code dari Mac")
+                    setBeepEnabled(false)
+                })
+            } catch (e: Exception) {
+                Log.e("Kaca", "Scan launch failed", e)
+                Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
+            }
+        }
+
+        btnToggleManual.setOnClickListener {
+            manualExpanded = !manualExpanded
+            manualCard.visibility = if (manualExpanded) View.VISIBLE else View.GONE
+            btnToggleManual.setIconResource(
+                if (manualExpanded) android.R.drawable.arrow_up_float
+                else android.R.drawable.arrow_down_float
+            )
+        }
 
         btnStart.setOnClickListener {
             val host = etHost.text.toString().trim()
@@ -111,20 +156,6 @@ class MainActivity : AppCompatActivity() {
 
         btnStop.setOnClickListener {
             stopMirror()
-        }
-
-        btnScan.setOnClickListener {
-            Log.i("Kaca", "Scan QR clicked")
-            try {
-                qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
-                    setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
-                    setPrompt("Scan QR code dari Mac")
-                    setBeepEnabled(false)
-                })
-            } catch (e: Exception) {
-                Log.e("Kaca", "Scan launch failed", e)
-                Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
-            }
         }
     }
 
@@ -166,8 +197,8 @@ class MainActivity : AppCompatActivity() {
         val err = MirrorService.lastError
         tvStatus.text = when {
             running -> "Mengirim ke ${MirrorService.currentTarget}"
-            err.isNotEmpty() -> "Terjadi error — lihat detail di bawah"
-            else -> "Status: berhenti"
+            err.isNotEmpty() -> "Terjadi error"
+            else -> "Siap"
         }
         if (err.isNotEmpty()) {
             tvError.text = err
@@ -181,7 +212,7 @@ class MainActivity : AppCompatActivity() {
             setStatusDot("idle")
         }
         btnStart.isEnabled = !running
-        btnStop.isEnabled = running
+        btnStop.visibility = if (running) View.VISIBLE else View.GONE
     }
 
     private fun setStatusDot(state: String) {
