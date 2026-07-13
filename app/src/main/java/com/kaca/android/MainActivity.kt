@@ -1,4 +1,4 @@
-package com.zmirror.android
+package com.kaca.android
 
 import android.app.Activity
 import android.content.Intent
@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
         // Load saved settings
-        val prefs = getSharedPreferences("zmirror", MODE_PRIVATE)
+        val prefs = getSharedPreferences("kaca", MODE_PRIVATE)
         etHost.setText(prefs.getString("host", ""))
         etPort.setText(prefs.getString("port", "27183"))
         etQuality.setText(prefs.getString("quality", "75"))
@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Save settings
-            getSharedPreferences("zmirror", MODE_PRIVATE).edit()
+            getSharedPreferences("kaca", MODE_PRIVATE).edit()
                 .putString("host", host)
                 .putString("port", port.toString())
                 .putString("quality", quality.toString())
@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnScan.setOnClickListener {
-            Log.i("ZMirror", "Scan QR clicked")
+            Log.i("Kaca", "Scan QR clicked")
             try {
                 qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
                     setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                     setBeepEnabled(false)
                 })
             } catch (e: Exception) {
-                Log.e("ZMirror", "Scan launch failed", e)
+                Log.e("Kaca", "Scan launch failed", e)
                 Toast.makeText(this, "Gagal buka scanner: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }

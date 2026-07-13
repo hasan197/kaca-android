@@ -1,3 +1,3 @@
 # Keep Kotlin metadata and app classes
--keep class com.zmirror.android.** { *; }
--dontwarn com.zmirror.android.**
+-keep class com.kaca.android.** { *; }
+-dontwarn com.kaca.android.**

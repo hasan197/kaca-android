@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ZMirror"
+rootProject.name = "Kaca"
 include(":app")

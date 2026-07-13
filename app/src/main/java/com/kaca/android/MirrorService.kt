@@ -1,4 +1,4 @@
-package com.zmirror.android
+package com.kaca.android
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -172,7 +172,7 @@ class MirrorService : Service() {
         // 5. VirtualDisplay
         val density = metrics.densityDpi
         virtualDisplay = mediaProjection?.createVirtualDisplay(
-            "ZMirror",
+            "Kaca",
             targetW, targetH, density,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             imageReader!!.surface, null, null
@@ -259,15 +259,15 @@ class MirrorService : Service() {
     }
 
     private fun startForegroundCompat() {
-        val channelId = "zmirror_channel"
+        val channelId = "kaca_channel"
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(channelId, "ZMirror Service", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(channelId, "Kaca Service", NotificationManager.IMPORTANCE_LOW)
             )
         }
         val notif: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("ZMirror aktif")
+            .setContentTitle("Kaca aktif")
             .setContentText("Mengirim layar ke $currentTarget")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
@@ -284,15 +284,15 @@ class MirrorService : Service() {
     }
 
     companion object {
-        const val ACTION_START = "com.zmirror.START"
-        const val ACTION_STOP = "com.zmirror.STOP"
+        const val ACTION_START = "com.kaca.START"
+        const val ACTION_STOP = "com.kaca.STOP"
         const val EXTRA_HOST = "host"
         const val EXTRA_PORT = "port"
         const val EXTRA_QUALITY = "quality"
 
         const val NOTIF_ID = 9001
 
-        private const val TAG = "ZMirror"
+        private const val TAG = "Kaca"
 
         @JvmStatic
         val MAGIC = byteArrayOf(0x5A, 0x4D, 0x49, 0x52) // "ZMIR"
@@ -329,8 +329,8 @@ class MirrorService : Service() {
         lastError = msg
         try {
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            val notif = NotificationCompat.Builder(this, "zmirror_channel")
-                .setContentTitle("ZMirror error")
+            val notif = NotificationCompat.Builder(this, "kaca_channel")
+                .setContentTitle("Kaca error")
                 .setContentText(msg)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
                 .setOngoing(false)

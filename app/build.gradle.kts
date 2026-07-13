@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.zmirror.android"
+    namespace = "com.kaca.android"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.zmirror.android"
+        applicationId = "com.kaca.android"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

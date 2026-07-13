@@ -1,0 +1,14 @@
+.DS_Store
+.sisyphus/
+dist/
+target/
+.gradle/
+build/
+local.properties
+*.apk
+*.keystore
+.idea/
+*.iml
+*.log
+*.tmp
+*.png
