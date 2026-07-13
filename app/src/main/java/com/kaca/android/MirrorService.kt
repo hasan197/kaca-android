@@ -92,6 +92,7 @@ class MirrorService : Service() {
 
         // Simpan koneksi berhasil ke recent list
         saveRecentConnection(this, host, port)
+        sessionActive = true
 
         // Send hello
         out.write(HELLO)
@@ -251,6 +252,7 @@ class MirrorService : Service() {
         socket = null
         socketOut = null
         isRunning = false
+        sessionActive = false
         currentTarget = ""
         clearConnectedState(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -308,6 +310,10 @@ class MirrorService : Service() {
         @JvmStatic
         var isRunning: Boolean = false
             private set
+
+        @Volatile
+        @JvmStatic
+        var sessionActive: Boolean = false
 
         @Volatile
         @JvmStatic
