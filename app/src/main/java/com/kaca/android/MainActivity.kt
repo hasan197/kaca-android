@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.TextView
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,7 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnScan: MaterialButton
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
-    private lateinit var vStatusDot: ImageView
+    private lateinit var vStatusDot: View
     private lateinit var vStatusPulse: View
     private lateinit var tvTabScan: TextView
     private lateinit var tvTabManual: TextView
@@ -244,7 +243,7 @@ class MainActivity : AppCompatActivity() {
             "error" -> R.color.status_error
             else -> R.color.status_idle
         }
-        vStatusDot.setColorFilter(ContextCompat.getColor(this, colorRes))
+        vStatusDot.background?.setColorFilter(ContextCompat.getColor(this, colorRes), android.graphics.PorterDuff.Mode.SRC_IN)
         vStatusPulse.background?.setColorFilter(ContextCompat.getColor(this, colorRes), android.graphics.PorterDuff.Mode.SRC_IN)
         vStatusPulse.isVisible = state == "active"
     }
