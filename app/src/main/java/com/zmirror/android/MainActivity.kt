@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etQuality: EditText
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
+    private lateinit var btnScan: Button
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
 
@@ -39,6 +40,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val qrScanLauncher = registerForActivityResult(
+        com.journeyapps.barcodescanner.ScanContract()
+    ) { result ->
+        if (result.contents != null) {
+            val qrText = result.contents.trim()
+            if (qrText.contains(":")) {
+                val parts = qrText.split(":", limit = 2)
+                etHost.setText(parts[0])
+                etPort.setText(parts[1])
+            } else {
+                etHost.setText(qrText)
+                etPort.setText("27183")
+            }
+            Toast.makeText(this, "QR scanned: $qrText", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -48,6 +66,7 @@ class MainActivity : AppCompatActivity() {
         etQuality = findViewById(R.id.etQuality)
         btnStart = findViewById(R.id.btnStart)
         btnStop = findViewById(R.id.btnStop)
+        btnScan = findViewById(R.id.btnScan)
         tvStatus = findViewById(R.id.tvStatus)
         tvError = findViewById(R.id.tvError)
 
@@ -84,6 +103,15 @@ class MainActivity : AppCompatActivity() {
 
         btnStop.setOnClickListener {
             stopMirror()
+        }
+
+        btnScan.setOnClickListener {
+            qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                setPrompt("Scan QR code dari Mac")
+                setBeepEnabled(false)
+                setOrientationLocked(true)
+            })
         }
     }
 

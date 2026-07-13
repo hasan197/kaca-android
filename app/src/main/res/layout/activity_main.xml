@@ -87,6 +87,24 @@
         android:enabled="false" />
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Atau scan QR code dari Mac:"
+        android:textSize="13sp"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="4dp"
+        android:gravity="center"
+        android:textColor="#888" />
+
+    <Button
+        android:id="@+id/btnScan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan QR"
+        android:textSize="16sp"
+        android:padding="12dp" />
+
+    <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
