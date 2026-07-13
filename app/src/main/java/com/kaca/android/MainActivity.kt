@@ -44,7 +44,19 @@ class MainActivity : AppCompatActivity() {
             MirrorService.pendingResultCode = result.resultCode
             MirrorService.pendingResultData = result.data
             MirrorService.lastError = ""
-            startMirror()
+
+            pendingQrHost?.let { host ->
+                pendingQrPort?.let { port ->
+                    pendingQrHost = null
+                    pendingQrPort = null
+                    startMirror(host, port.toIntOrNull() ?: 27183, 75)
+                    return@let
+                }
+            }
+            val host = etHost.text.toString().trim()
+            val port = etPort.text.toString().trim().toIntOrNull() ?: 27183
+            val quality = etQuality.text.toString().trim().toIntOrNull() ?: 75
+            startMirror(host, port, quality)
         } else {
             Snackbar.make(findViewById(android.R.id.content), "Izin screen capture ditolak", Snackbar.LENGTH_SHORT).show()
         }
@@ -66,16 +78,12 @@ class MainActivity : AppCompatActivity() {
                 host = qrText
                 port = "27183"
             }
-            etHost.setText(host)
-            etPort.setText(port)
-            getSharedPreferences("kaca", MODE_PRIVATE).edit()
-                .putString("host", host)
-                .putString("port", port)
-                .apply()
+
+            pendingQrHost = host
+            pendingQrPort = port
 
             Snackbar.make(findViewById(android.R.id.content), "QR: $host:$port — menghubungkan...", Snackbar.LENGTH_SHORT).show()
 
-            // Auto-start: langsung minta izin screen capture
             val intent = projectionManager?.createScreenCaptureIntent()
             if (intent != null) {
                 screenCaptureLauncher.launch(intent)
@@ -150,6 +158,9 @@ class MainActivity : AppCompatActivity() {
                 .putString("quality", quality.toString())
                 .apply()
 
+            pendingQrHost = host
+            pendingQrPort = port.toString()
+
             val intent = projectionManager?.createScreenCaptureIntent() ?: return@setOnClickListener
             screenCaptureLauncher.launch(intent)
         }
@@ -159,11 +170,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startMirror() {
-        val host = etHost.text.toString().trim()
-        val port = etPort.text.toString().trim().toIntOrNull() ?: 27183
-        val quality = etQuality.text.toString().trim().toIntOrNull() ?: 75
-
+    private fun startMirror(host: String, port: Int, quality: Int) {
         val intent = Intent(this, MirrorService::class.java).apply {
             action = MirrorService.ACTION_START
             putExtra(MirrorService.EXTRA_HOST, host)
