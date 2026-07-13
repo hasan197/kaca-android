@@ -44,7 +44,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -135,18 +138,25 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(state) {
-        if (state == AppState.Connecting) {
-            var waited = 0
-            while (waited < 60) {
-                delay(500)
-                waited++
-                if (com.kaca.android.MirrorService.isConnected(ctx)) {
-                    state = AppState.Connected
-                    break
-                }
+    var connected by remember { mutableStateOf(com.kaca.android.MirrorService.isConnected(ctx)) }
+    DisposableEffect(Unit) {
+        val prefs = ctx.getSharedPreferences("kaca", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "connected") {
+                connected = prefs.getBoolean("connected", false)
             }
         }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    LaunchedEffect(connected) {
+        if (connected && state == AppState.Connecting) {
+            state = AppState.Connected
+        }
+    }
+
+    LaunchedEffect(state) {
         if (state == AppState.Connected) {
             duration = 0
             while (true) {
