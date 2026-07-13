@@ -6,8 +6,10 @@
     <color name="brand_bg">#F2F2F7</color>
 
     <!-- Neutral -->
+    <color name="neutral_950">#0A0A0B</color>
     <color name="neutral_900">#1C1C1E</color>
     <color name="neutral_800">#2C2C2E</color>
+    <color name="neutral_700">#48484A</color>
     <color name="neutral_600">#636366</color>
     <color name="neutral_500">#8E8E93</color>
     <color name="neutral_400">#AEAEB2</color>
@@ -16,11 +18,24 @@
     <color name="neutral_100">#E5E5EA</color>
     <color name="neutral_50">#F2F2F7</color>
     <color name="white">#FFFFFF</color>
+    <color name="white_80">#CCFFFFFF</color>
+    <color name="white_90">#E6FFFFFF</color>
 
     <!-- Status -->
     <color name="status_active">#22C55E</color>
+    <color name="status_active_bg">#22C55E0D</color>
     <color name="status_error">#EF4444</color>
     <color name="status_idle">#AEAEB2</color>
+
+    <!-- Rose / Danger -->
+    <color name="brand_rose">#F43F5E</color>
+    <color name="brand_rose_soft">#FFF1F2</color>
+    <color name="brand_rose_border">#FECDD3</color>
+
+    <!-- Emerald -->
+    <color name="emerald_500">#22C55E</color>
+    <color name="emerald_400">#4ADE80</color>
+    <color name="emerald_50">#ECFDF5</color>
 
     <!-- Icon -->
     <color name="ic_launcher_background">#007AFF</color>
