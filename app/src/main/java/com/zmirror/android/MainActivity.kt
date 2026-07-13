@@ -116,7 +116,6 @@ class MainActivity : AppCompatActivity() {
                     setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
                     setPrompt("Scan QR code dari Mac")
                     setBeepEnabled(false)
-                    setOrientationLocked(true)
                 })
             } catch (e: Exception) {
                 Log.e("ZMirror", "Scan launch failed", e)
