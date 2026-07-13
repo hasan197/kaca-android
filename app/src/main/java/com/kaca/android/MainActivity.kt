@@ -11,11 +11,11 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.util.Log
-import com.google.android.material.button.MaterialButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.google.android.material.card.MaterialCardView
+import androidx.core.view.isVisible
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
@@ -24,18 +24,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etPort: EditText
     private lateinit var etQuality: EditText
     private lateinit var btnStart: MaterialButton
-    private lateinit var btnStop: MaterialButton
     private lateinit var btnScan: MaterialButton
-    private lateinit var btnToggleManual: MaterialButton
-    private lateinit var manualCard: MaterialCardView
     private lateinit var tvStatus: TextView
     private lateinit var tvError: TextView
     private lateinit var vStatusDot: ImageView
+    private lateinit var vStatusPulse: View
+    private lateinit var tvTabScan: TextView
+    private lateinit var tvTabManual: TextView
+    private lateinit var vTabIndicator: View
+    private lateinit var layoutScanTab: View
+    private lateinit var layoutManualTab: View
 
     private var projectionManager: MediaProjectionManager? = null
-    private var manualExpanded = false
     private var pendingQrHost: String? = null
     private var pendingQrPort: String? = null
+    private var activeTab = 0
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -101,13 +104,16 @@ class MainActivity : AppCompatActivity() {
         etPort = findViewById(R.id.etPort)
         etQuality = findViewById(R.id.etQuality)
         btnStart = findViewById(R.id.btnStart)
-        btnStop = findViewById(R.id.btnStop)
         btnScan = findViewById(R.id.btnScan)
-        btnToggleManual = findViewById(R.id.btnToggleManual)
-        manualCard = findViewById(R.id.manualCard)
         tvStatus = findViewById(R.id.tvStatus)
         tvError = findViewById(R.id.tvError)
         vStatusDot = findViewById(R.id.vStatusDot)
+        vStatusPulse = findViewById(R.id.vStatusPulse)
+        tvTabScan = findViewById(R.id.tvTabScan)
+        tvTabManual = findViewById(R.id.tvTabManual)
+        vTabIndicator = findViewById(R.id.vTabIndicator)
+        layoutScanTab = findViewById(R.id.layoutScanTab)
+        layoutManualTab = findViewById(R.id.layoutManualTab)
 
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
@@ -117,6 +123,9 @@ class MainActivity : AppCompatActivity() {
         etQuality.setText(prefs.getString("quality", "75"))
 
         updateStatusUI()
+
+        tvTabScan.setOnClickListener { selectTab(0) }
+        tvTabManual.setOnClickListener { selectTab(1) }
 
         btnScan.setOnClickListener {
             Log.i("Kaca", "Scan QR clicked")
@@ -130,15 +139,6 @@ class MainActivity : AppCompatActivity() {
                 Log.e("Kaca", "Scan launch failed", e)
                 Snackbar.make(findViewById(android.R.id.content), "Gagal buka kamera: ${e.message}", Snackbar.LENGTH_LONG).show()
             }
-        }
-
-        btnToggleManual.setOnClickListener {
-            manualExpanded = !manualExpanded
-            manualCard.visibility = if (manualExpanded) View.VISIBLE else View.GONE
-            btnToggleManual.setIconResource(
-                if (manualExpanded) android.R.drawable.arrow_up_float
-                else android.R.drawable.arrow_down_float
-            )
         }
 
         btnStart.setOnClickListener {
@@ -164,10 +164,28 @@ class MainActivity : AppCompatActivity() {
             val intent = projectionManager?.createScreenCaptureIntent() ?: return@setOnClickListener
             screenCaptureLauncher.launch(intent)
         }
+    }
 
-        btnStop.setOnClickListener {
-            stopMirror()
-        }
+    private fun selectTab(index: Int) {
+        if (index == activeTab) return
+        activeTab = index
+
+        val isScan = index == 0
+        layoutScanTab.visibility = if (isScan) View.VISIBLE else View.GONE
+        layoutManualTab.visibility = if (isScan) View.GONE else View.VISIBLE
+
+        val tabWidth = tvTabScan.width
+        val indicatorTargetX = if (isScan) 0f else (tabWidth.toFloat())
+
+        vTabIndicator.animate()
+            .translationX(indicatorTargetX)
+            .setDuration(250)
+            .start()
+
+        tvTabScan.setTextColor(ContextCompat.getColor(this,
+            if (isScan) R.color.brand_blue else R.color.neutral_400))
+        tvTabManual.setTextColor(ContextCompat.getColor(this,
+            if (isScan) R.color.neutral_400 else R.color.brand_blue))
     }
 
     private fun startMirror(host: String, port: Int, quality: Int) {
@@ -203,9 +221,9 @@ class MainActivity : AppCompatActivity() {
         val running = MirrorService.isRunning
         val err = MirrorService.lastError
         tvStatus.text = when {
-            running -> "Mengirim ke ${MirrorService.currentTarget}"
-            err.isNotEmpty() -> "Terjadi error"
-            else -> "Siap"
+            running -> "MENGIRIM KE ${MirrorService.currentTarget}"
+            err.isNotEmpty() -> "TERJADI ERROR"
+            else -> "SISTEM SIAP"
         }
         if (err.isNotEmpty()) {
             tvError.text = err
@@ -218,8 +236,6 @@ class MainActivity : AppCompatActivity() {
             tvError.visibility = View.GONE
             setStatusDot("idle")
         }
-        btnStart.isEnabled = !running
-        btnStop.visibility = if (running) View.VISIBLE else View.GONE
     }
 
     private fun setStatusDot(state: String) {
@@ -229,6 +245,8 @@ class MainActivity : AppCompatActivity() {
             else -> R.color.status_idle
         }
         vStatusDot.setColorFilter(ContextCompat.getColor(this, colorRes))
+        vStatusPulse.background?.setColorFilter(ContextCompat.getColor(this, colorRes), android.graphics.PorterDuff.Mode.SRC_IN)
+        vStatusPulse.isVisible = state == "active"
     }
 
     override fun onResume() {

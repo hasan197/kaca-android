@@ -1,25 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary -->
-    <color name="primary">#1565C0</color>
-    <color name="primary_dark">#0D47A1</color>
-    <color name="primary_light">#42A5F5</color>
+    <!-- Brand -->
+    <color name="brand_blue">#1D68C2</color>
+    <color name="brand_blue_soft">#EEF3FC</color>
+    <color name="brand_bg">#F8FAFF</color>
 
-    <!-- Secondary / Accent -->
-    <color name="secondary">#00897B</color>
-    <color name="secondary_light">#4DB6AC</color>
-
-    <!-- Surface & Background -->
-    <color name="background">#F5F7FA</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="on_surface">#1C1B1F</color>
+    <!-- Neutral -->
+    <color name="neutral_900">#1A1C1E</color>
+    <color name="neutral_500">#8E8E93</color>
+    <color name="neutral_400">#AEAEB2</color>
+    <color name="neutral_300">#C7C7CC</color>
+    <color name="neutral_200">#D1D1D6</color>
+    <color name="neutral_100">#E5E5EA</color>
+    <color name="neutral_50">#F2F2F7</color>
+    <color name="white">#FFFFFF</color>
 
     <!-- Status -->
-    <color name="status_active">#2E7D32</color>
-    <color name="status_error">#C62828</color>
-    <color name="status_idle">#757575</color>
+    <color name="status_active">#22C55E</color>
+    <color name="status_error">#EF4444</color>
+    <color name="status_idle">#AEAEB2</color>
 
     <!-- Icon -->
-    <color name="ic_launcher_background">#1565C0</color>
+    <color name="ic_launcher_background">#1D68C2</color>
     <color name="ic_launcher_foreground">#FFFFFF</color>
 </resources>

@@ -1,284 +1,500 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:background="@color/brand_bg"
+    android:paddingHorizontal="24dp">
 
+    <!-- ── Header ── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:paddingHorizontal="20dp"
-        android:paddingBottom="32dp">
+        android:paddingTop="48dp"
+        android:paddingBottom="24dp">
 
-        <!-- ── Header ── -->
-        <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:layout_marginTop="32dp"
-            android:src="@drawable/ic_launcher_foreground"
-            android:background="@drawable/ic_launcher_background"
+        <FrameLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@color/brand_blue"
             android:clipToOutline="true"
-            android:importantForAccessibility="no" />
+            android:layout_marginBottom="12dp">
+
+            <View
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_tab_container"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="K"
+                android:textColor="@color/white"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textSize="28sp"
+            android:textSize="24sp"
             android:textStyle="bold"
-            android:textColor="@color/on_surface"
-            android:layout_marginTop="12dp" />
+            android:textColor="@color/neutral_900" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Mirror layar Android ke Mac"
-            android:textSize="14sp"
-            android:textColor="#888"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="28dp" />
-
-        <!-- ══════ QR SCAN (primary) ══════ -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="3dp"
-            app:cardCornerRadius="20dp"
-            app:strokeColor="@color/primary"
-            app:strokeWidth="1dp"
-            app:contentPadding="24dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Scan QR"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Langsung connect — tanpa isi apa-apa"
-                    android:textSize="13sp"
-                    android:textColor="#999"
-                    android:layout_marginBottom="16dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnScan"
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:text="Scan QR Code"
-                    android:textSize="18sp"
-                    app:icon="@android:drawable/ic_menu_camera"
-                    app:iconGravity="textStart"
-                    app:iconSize="28dp"
-                    app:cornerRadius="14dp" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ══════ DIVIDER ══════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#DDD" />
+            android:gravity="center"
+            android:layout_marginTop="4dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="  atau  "
-                android:textSize="13sp"
-                android:textColor="#bbb" />
+                android:text="SCREEN MIRRORING"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:textColor="@color/brand_blue"
+                android:alpha="0.6"
+                android:letterSpacing="0.2" />
 
             <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#DDD" />
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:background="@color/neutral_200"
+                android:layout_marginHorizontal="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Android ke Mac"
+                android:textSize="9sp"
+                android:textColor="@color/neutral_400" />
 
         </LinearLayout>
 
-        <!-- ══════ MANUAL INPUT (secondary) ══════ -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnToggleManual"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Isi Manual"
-            android:textSize="15sp"
-            app:icon="@android:drawable/arrow_down_float"
-            app:iconGravity="textEnd"
-            android:layout_marginBottom="12dp" />
+    </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/manualCard"
+    <!-- ── Tab Switcher ── -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_tab_container"
+        android:layout_marginBottom="24dp">
+
+        <!-- Sliding indicator -->
+        <View
+            android:id="@+id/vTabIndicator"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:layout_marginBottom="12dp"
-            app:cardElevation="1dp"
-            app:cardCornerRadius="16dp"
-            app:strokeWidth="0dp"
-            app:contentPadding="20dp">
+            android:layout_height="36dp"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_tab_indicator"
+            android:elevation="2dp" />
+
+        <!-- Tab buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvTabScan"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="SCAN QR"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/brand_blue"
+                android:letterSpacing="0.2"
+                android:background="@android:color/transparent" />
+
+            <TextView
+                android:id="@+id/tvTabManual"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="ISI MANUAL"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/neutral_400"
+                android:letterSpacing="0.2"
+                android:background="@android:color/transparent" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- ── Tab Content ── -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="8dp">
+
+        <!-- ═══ SCAN QR TAB ═══ -->
+        <LinearLayout
+            android:id="@+id/layoutScanTab"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="visible">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_card"
+                android:padding="32dp">
 
-                <com.google.android.material.textfield.TextInputLayout
+                <!-- Badge -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cara Termudah"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/brand_blue"
+                    android:background="@color/brand_blue_soft"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:gravity="center"
+                    android:letterSpacing="0.15" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hubungkan via QR"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/neutral_900"
+                    android:layout_marginTop="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pindai kode QR yang muncul\ndi aplikasi Kaca Mac Anda"
+                    android:textSize="13sp"
+                    android:textColor="@color/neutral_400"
+                    android:gravity="center"
+                    android:lineSpacingExtra="3dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="28dp" />
+
+                <!-- Camera frame -->
+                <FrameLayout
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:background="@drawable/bg_camera_frame"
+                    android:layout_marginBottom="28dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="📷"
+                        android:textSize="40sp"
+                        android:alpha="0.4" />
+
+                    <!-- Decorative corners -->
+
+                </FrameLayout>
+
+                <!-- Scan Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScan"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="BUKA KAMERA"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    app:icon="@drawable/ic_camera"
+                    app:iconGravity="textStart"
+                    app:iconSize="20dp"
+                    app:cornerRadius="16dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ═══ MANUAL TAB ═══ -->
+        <LinearLayout
+            android:id="@+id/layoutManualTab"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/bg_card"
+                android:padding="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Konfigurasi IP"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/neutral_900" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Gunakan jika QR Code tidak terbaca"
+                    android:textSize="13sp"
+                    android:textColor="@color/neutral_400"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="28dp" />
+
+                <!-- Host IP -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Host IP Mac"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-                    app:endIconMode="clear_text"
-                    android:layout_marginBottom="12dp">
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etHost"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="HOST IP MAC"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/neutral_400"
+                        android:letterSpacing="0.15"
+                        android:layout_marginBottom="6dp"
+                        android:layout_marginStart="4dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:textSize="16sp" />
+                        style="@style/Widget.Kaca.Input">
 
-                </com.google.android.material.textfield.TextInputLayout>
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etHost"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="192.168.1.xxx"
+                            android:inputType="text"
+                            android:textSize="14sp"
+                            android:fontFamily="monospace"
+                            android:background="@null" />
 
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+
+                <!-- Port & Quality row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <com.google.android.material.textfield.TextInputLayout
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Port"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-                        android:layout_marginEnd="6dp">
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etPort"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PORT"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/neutral_400"
+                            android:letterSpacing="0.15"
+                            android:layout_marginBottom="6dp"
+                            android:layout_marginStart="4dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:textSize="16sp"
-                            android:text="27183" />
+                            style="@style/Widget.Kaca.Input">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etPort"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:textSize="14sp"
+                                android:fontFamily="monospace"
+                                android:text="27183"
+                                android:background="@null" />
 
-                    <com.google.android.material.textfield.TextInputLayout
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:hint="Kualitas"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-                        app:suffixText="%"
-                        android:layout_marginStart="6dp">
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etQuality"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="KUALITAS"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/neutral_400"
+                            android:letterSpacing="0.15"
+                            android:layout_marginBottom="6dp"
+                            android:layout_marginStart="4dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:textSize="16sp"
-                            android:text="75" />
+                            style="@style/Widget.Kaca.Input"
+                            app:suffixText="%">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etQuality"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:textSize="14sp"
+                                android:fontFamily="monospace"
+                                android:text="75"
+                                android:background="@null" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
+                <!-- Start Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnStart"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:text="Mulai Mirror"
-                    android:textSize="16sp"
-                    app:icon="@android:drawable/ic_media_play"
+                    android:layout_height="56dp"
+                    android:text="MULAI MIRROR"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    app:icon="@drawable/ic_play_fill"
                     app:iconGravity="textStart"
-                    app:cornerRadius="12dp"
-                    android:layout_marginTop="16dp" />
+                    app:iconSize="16dp"
+                    app:cornerRadius="16dp"
+                    android:backgroundTint="@color/neutral_900"
+                    android:layout_marginTop="24dp" />
 
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-        <!-- ══════ ACTION BUTTONS (visible when streaming) ══════ -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnStop"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="Berhenti"
-            android:textSize="16sp"
-            app:icon="@android:drawable/ic_media_pause"
-            app:iconGravity="textStart"
-            app:cornerRadius="12dp"
-            android:visibility="gone"
-            android:layout_marginBottom="16dp" />
+    </FrameLayout>
 
-        <!-- ══════ STATUS ══════ -->
+    <!-- ── Status + Footer ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingVertical="16dp"
+        android:layout_marginBottom="8dp">
+
+        <!-- Status -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:paddingVertical="10dp">
+            android:background="@drawable/bg_status_pill"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp">
 
-            <ImageView
-                android:id="@+id/vStatusDot"
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:layout_marginEnd="8dp"
-                android:src="@drawable/shape_circle"
-                android:importantForAccessibility="no" />
+            <FrameLayout
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="8dp">
+
+                <View
+                    android:id="@+id/vStatusPulse"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/shape_status_pulse" />
+
+                <View
+                    android:id="@+id/vStatusDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/shape_circle" />
+
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Siap"
-                android:textSize="14sp"
-                android:textColor="#888" />
+                android:text="Sistem Siap"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:textColor="@color/neutral_500"
+                android:letterSpacing="0.12" />
 
         </LinearLayout>
 
-        <!-- ══════ ERROR ══════ -->
-        <TextView
-            android:id="@+id/tvError"
-            android:layout_width="match_parent"
+        <!-- Help -->
+        <LinearLayout
+            android:id="@+id/btnHelp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="11sp"
-            android:typeface="monospace"
-            android:textColor="@color/status_error"
-            android:textIsSelectable="true"
-            android:visibility="gone"
-            android:padding="12dp"
-            android:background="@drawable/shape_error_bg"
-            android:layout_marginTop="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="12dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_info"
+                android:padding="8dp"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BANTUAN"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:textColor="@color/neutral_400"
+                android:letterSpacing="0.15" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-</ScrollView>
+    <!-- ── Error ── -->
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:typeface="monospace"
+        android:textColor="@color/status_error"
+        android:textIsSelectable="true"
+        android:visibility="gone"
+        android:padding="12dp"
+        android:background="@drawable/shape_error_bg"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>
