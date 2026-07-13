@@ -12,8 +12,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import com.google.android.material.snackbar.Snackbar
+import com.kaca.android.ui.AppState
 import com.kaca.android.ui.MainScreen
 
 class MainActivity : ComponentActivity() {
@@ -21,6 +23,8 @@ class MainActivity : ComponentActivity() {
     private var projectionManager: MediaProjectionManager? = null
     private var pendingQrHost: String? = null
     private var pendingQrPort: String? = null
+
+    private var appState = mutableStateOf(AppState.Initial)
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -31,14 +35,16 @@ class MainActivity : ComponentActivity() {
             MirrorService.lastError = ""
 
             pendingQrHost?.let { host ->
-                pendingQrPort?.let { port ->
+                pendingQrPort?.let hostPort@{ port ->
                     pendingQrHost = null
                     pendingQrPort = null
+                    appState.value = AppState.Connecting
                     startMirroring(host, port.toIntOrNull() ?: 27183, 75)
-                    return@let
+                    return@hostPort
                 }
             }
         } else {
+            appState.value = AppState.Initial
             Snackbar.make(findViewById(android.R.id.content), "Izin screen capture ditolak", Snackbar.LENGTH_SHORT).show()
         }
     }
@@ -70,6 +76,7 @@ class MainActivity : ComponentActivity() {
                 screenCaptureLauncher.launch(intent)
             }
         } else {
+            appState.value = AppState.Initial
             Snackbar.make(findViewById(android.R.id.content), "QR tidak terbaca", Snackbar.LENGTH_LONG).show()
         }
     }
@@ -78,10 +85,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        appState.value = if (MirrorService.isConnected(this)) AppState.Connected else AppState.Initial
 
         setContent {
             Surface(modifier = Modifier.fillMaxSize()) {
                 MainScreen(
+                    state = appState.value,
+                    onStateChange = { appState.value = it },
                     onScanQr = {
                         try {
                             qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
@@ -127,17 +137,24 @@ class MainActivity : ComponentActivity() {
         startForegroundService(intent)
 
         val h = Handler(Looper.getMainLooper())
-        h.postDelayed({ checkServiceState(h) }, 300)
+        h.postDelayed({ checkServiceState(h, 0) }, 300)
     }
 
-    private fun checkServiceState(h: Handler) {
+    private fun checkServiceState(h: Handler, retries: Int) {
         if (MirrorService.lastError.isNotEmpty()) {
             Snackbar.make(findViewById(android.R.id.content), "Error: ${MirrorService.lastError}", Snackbar.LENGTH_LONG).show()
+            appState.value = AppState.Initial
             return
         }
-        if (!MirrorService.isRunning) {
-            h.postDelayed({ checkServiceState(h) }, 500)
+        if (MirrorService.sessionActive) {
+            appState.value = AppState.Connected
+            return
         }
+        if (retries > 60) {
+            appState.value = AppState.Initial
+            return
+        }
+        h.postDelayed({ checkServiceState(h, retries + 1) }, 500)
     }
 
     private fun stopMirror() {
@@ -145,5 +162,6 @@ class MainActivity : ComponentActivity() {
             action = MirrorService.ACTION_STOP
         }
         startService(intent)
+        appState.value = AppState.Initial
     }
 }

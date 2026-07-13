@@ -44,10 +44,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -108,6 +105,8 @@ enum class AppState { Initial, Scanning, Manual, Connecting, Connected }
 
 @Composable
 fun MainScreen(
+    state: AppState,
+    onStateChange: (AppState) -> Unit,
     onScanQr: () -> Unit,
     onManualConnect: (host: String, port: Int, quality: Int) -> Unit,
     onStopMirror: () -> Unit,
@@ -115,9 +114,6 @@ fun MainScreen(
     onRecentDevice: (String) -> Unit,
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    var state by remember { mutableStateOf(
-        if (com.kaca.android.MirrorService.isConnected(ctx)) AppState.Connected else AppState.Initial
-    ) }
     var hostIp by remember { mutableStateOf(
         com.kaca.android.MirrorService.getConnectedHost(ctx).substringBefore(":").ifEmpty { "192.168.1.15" }
     ) }
@@ -135,24 +131,6 @@ fun MainScreen(
                 else -> "${(System.currentTimeMillis() - ts) / 3_600_000} jam lalu"
             }
             RecentDevice(ip, ip, label)
-        }
-    }
-
-    var connected by remember { mutableStateOf(com.kaca.android.MirrorService.isConnected(ctx)) }
-    DisposableEffect(Unit) {
-        val prefs = ctx.getSharedPreferences("kaca", Context.MODE_PRIVATE)
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "connected") {
-                connected = prefs.getBoolean("connected", false)
-            }
-        }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
-
-    LaunchedEffect(connected) {
-        if (connected && state == AppState.Connecting) {
-            state = AppState.Connected
         }
     }
 
@@ -181,7 +159,7 @@ fun MainScreen(
             Header(
                 state = state,
                 onBack = {
-                    state = AppState.Initial
+                    onStateChange(AppState.Initial)
                     onCancel()
                 }
             )
@@ -202,19 +180,19 @@ fun MainScreen(
                     when (currentState) {
                         AppState.Initial -> InitialState(
                             onScan = {
-                                state = AppState.Scanning
+                                onStateChange(AppState.Scanning)
                                 onScanQr()
                             },
-                            onManual = { state = AppState.Manual },
+                            onManual = { onStateChange(AppState.Manual) },
                             onRecentDevice = { ip ->
                                 hostIp = ip
-                                state = AppState.Manual
+                                onStateChange(AppState.Manual)
                                 onRecentDevice(ip)
                             },
                             recentDevices = recentDevices
                         )
                         AppState.Scanning -> ScanningState(
-                            onCancel = { state = AppState.Initial }
+                            onCancel = { onStateChange(AppState.Initial) }
                         )
                         AppState.Manual -> ManualState(
                             hostIp = hostIp,
@@ -225,15 +203,15 @@ fun MainScreen(
                             onQualityChange = { quality = it },
                             onConnect = {
                                 onManualConnect(hostIp, port.toIntOrNull() ?: 27183, quality.toIntOrNull() ?: 75)
-                                state = AppState.Connecting
+                                onStateChange(AppState.Connecting)
                             },
-                            onBack = { state = AppState.Initial }
+                            onBack = { onStateChange(AppState.Initial) }
                         )
                         AppState.Connecting -> ConnectingState(
                             hostIp = hostIp,
                             port = port,
                             onCancel = {
-                                state = AppState.Initial
+                                onStateChange(AppState.Initial)
                                 onCancel()
                             }
                         )
@@ -245,7 +223,7 @@ fun MainScreen(
                             quality = quality,
                             onStop = {
                                 onStopMirror()
-                                state = AppState.Initial
+                                onStateChange(AppState.Initial)
                             }
                         )
                     }
