@@ -25,6 +25,7 @@ import android.view.Surface
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -217,8 +218,7 @@ class MirrorService : Service() {
         stopSelfSafely()
     }
 
-    /// Connect ke Mac, kirim HELLO, lalu block sampai socket mati.
-    /// Throw IOException saat koneksi gagal atau socket ditutup remote.
+    @Throws(IOException::class)
     private fun connectAndStream(host: String, port: Int) {
         Log.i(TAG, "connecting to $host:$port")
         val s = Socket()
@@ -233,45 +233,102 @@ class MirrorService : Service() {
             socketAlive = true
         }
 
-        // Simpan koneksi berhasil ke recent list
         saveRecentConnection(this, host, port)
-        sessionActive = true
         updateNotification("Mengirim layar ke $currentTarget")
 
-        // Send hello
-        out.write(HELLO)
-        out.flush()
-
+        // Handshake: kirim Hello("KACA"), terima Hello("OK")
+        writeMessage(out, MSG_HELLO, "KACA".toByteArray())
+        val (helloType, helloPayload) = readMessage(s)
+        if (helloType != MSG_HELLO || String(helloPayload) != "OK") {
+            throw IOException("handshake failed: unexpected response")
+        }
+        sessionActive = true
         Log.i(TAG, "streaming started")
 
-        // Block sampai socket mati atau user stop.
-        // Kita monitor input stream — kalau read return -1 atau throw, socket closed.
-        val input = s.getInputStream()
-        val buf = ByteArray(1)
+        // Message loop: baca pesan masuk dari server
+        val input = DataInputStream(s.getInputStream())
+        val headerBuf = ByteArray(PROTOCOL_HEADER_LEN)
         while (running && socketAlive && !Thread.currentThread().isInterrupted) {
-            val n = try {
-                input.read(buf)
-            } catch (_: Exception) {
-                -1
-            }
-            if (n < 0) {
-                // Remote menutup koneksi
-                throw IOException("socket closed by remote")
-            }
             try {
-                Thread.sleep(50)
-            } catch (_: InterruptedException) {
-                break
+                input.readFully(headerBuf)
+                val msgType = headerBuf[0].toInt() and 0xFF
+                val payloadLen = readIntBE(headerBuf, 1)
+                if (payloadLen > MAX_PAYLOAD) {
+                    throw IOException("payload too large: $payloadLen")
+                }
+                val payload = ByteArray(payloadLen)
+                if (payloadLen > 0) input.readFully(payload)
+
+                handleServerMessage(msgType, payload, out)
+            } catch (e: java.io.EOFException) {
+                throw IOException("socket closed by remote")
             }
         }
 
-        // Clean exit (running = false atau socketAlive = false)
         synchronized(this) {
             socketOut = null
             socketAlive = false
         }
         try { socket?.close() } catch (_: Exception) {}
         socket = null
+    }
+
+    private fun handleServerMessage(msgType: Int, payload: ByteArray, out: DataOutputStream) {
+        when (msgType) {
+            MSG_PING -> {
+                try {
+                    writeMessage(out, MSG_PING, "PONG".toByteArray())
+                } catch (_: IOException) {}
+            }
+            MSG_CLIPBOARD_TEXT -> {
+                val text = String(payload, Charsets.UTF_8)
+                Log.i(TAG, "clipboard from mac: ${text.take(100)}")
+                // TODO: Phase 1.1 — set clipboard
+            }
+            MSG_FIND_PHONE -> {
+                Log.i(TAG, "find phone requested")
+                // TODO: Phase 3.4 — play alarm sound
+            }
+            else -> {
+                Log.w(TAG, "unhandled server message: type=$msgType len=${payload.size}")
+            }
+        }
+    }
+
+    /// Encode message: [type(1) | len(4) | payload(N)]
+    @Throws(IOException::class)
+    private fun writeMessage(out: DataOutputStream, type: Int, payload: ByteArray) {
+        synchronized(out) {
+                    out.writeByte(type)
+                    out.writeInt(payload.size)
+            out.write(payload)
+            out.flush()
+        }
+    }
+
+    /// Baca satu message dari socket (blocking, untuk handshake).
+    /// Return (type, payload) atau throw IOException.
+    @Throws(IOException::class)
+    private fun readMessage(s: Socket): Pair<Int, ByteArray> {
+        val input = DataInputStream(s.getInputStream())
+        val header = ByteArray(PROTOCOL_HEADER_LEN)
+        input.readFully(header)
+        val msgType = header[0].toInt() and 0xFF
+        val payloadLen = readIntBE(header, 1)
+        if (payloadLen > MAX_PAYLOAD) {
+            throw IOException("payload too large: $payloadLen")
+        }
+        val payload = ByteArray(payloadLen)
+        if (payloadLen > 0) input.readFully(payload)
+        return Pair(msgType, payload)
+    }
+
+    /// Read big-endian u32 dari byte array mulai dari offset.
+    private fun readIntBE(buf: ByteArray, offset: Int): Int {
+        return ((buf[offset].toInt() and 0xFF) shl 24) or
+               ((buf[offset + 1].toInt() and 0xFF) shl 16) or
+               ((buf[offset + 2].toInt() and 0xFF) shl 8) or
+               (buf[offset + 3].toInt() and 0xFF)
     }
 
     private fun processFrame(image: Image, width: Int, height: Int, quality: Int) {
@@ -297,26 +354,22 @@ class MirrorService : Service() {
         cropped.compress(Bitmap.CompressFormat.JPEG, quality, baos)
         val jpegBytes = baos.toByteArray()
 
-        // Write frame: MAGIC | width | height | jpeg_len | jpeg
-        // Skip kalau socket sedang mati (sedang reconnect)
         if (!socketAlive) return
         val out = socketOut ?: return
-        synchronized(out) {
-            try {
-                out.apply {
-                    write(MAGIC)
-                    writeInt(width)
-                    writeInt(height)
-                    writeInt(jpegBytes.size)
-                    write(jpegBytes)
-                    flush()
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "socket write failed: ${e.message}")
-                // Trigger reconnect — JANGAN set running = false.
-                // Main loop akan detect socketAlive = false & retry.
-                socketAlive = false
-            }
+        // Encode frame payload: width(4) | height(4) | jpeg_len(4) | jpeg
+        val framePayload = ByteArrayOutputStream(12 + jpegBytes.size)
+        DataOutputStream(framePayload).apply {
+            writeInt(width)
+            writeInt(height)
+            writeInt(jpegBytes.size)
+            write(jpegBytes)
+        }
+        val frameBytes = framePayload.toByteArray()
+        try {
+            writeMessage(out, MSG_FRAME, frameBytes)
+        } catch (e: Exception) {
+            Log.w(TAG, "socket write failed: ${e.message}")
+            socketAlive = false
         }
 
         // Cleanup
@@ -404,11 +457,24 @@ class MirrorService : Service() {
 
         private const val TAG = "Kaca"
 
-        @JvmStatic
-        val MAGIC = byteArrayOf(0x5A, 0x4D, 0x49, 0x52) // "ZMIR"
+        // Protocol message types (cocok dengan kaca-macos/src/protocol.rs)
+        const val MSG_HELLO = 0x01
+        const val MSG_FRAME = 0x02
+        const val MSG_CLIPBOARD_TEXT = 0x03
+        const val MSG_CLIPBOARD_IMAGE = 0x04
+        const val MSG_NOTIFICATION = 0x05
+        const val MSG_FILE_META = 0x06
+        const val MSG_FILE_CHUNK = 0x07
+        const val MSG_SMS = 0x08
+        const val MSG_CALL = 0x09
+        const val MSG_KEYBOARD = 0x0A
+        const val MSG_TOUCH = 0x0B
+        const val MSG_BATTERY = 0x0C
+        const val MSG_PING = 0x0D
+        const val MSG_FIND_PHONE = 0x0E
 
-        @JvmStatic
-        val HELLO = "ZMIR_HELLO".toByteArray()
+        const val PROTOCOL_HEADER_LEN = 5 // type(1) + payload_len(4)
+        const val MAX_PAYLOAD = 32 * 1024 * 1024
 
         @Volatile
         @JvmStatic
