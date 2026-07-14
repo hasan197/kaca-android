@@ -107,6 +107,7 @@ enum class AppState { Initial, Scanning, Manual, Connecting, Connected }
 fun MainScreen(
     state: AppState,
     onStateChange: (AppState) -> Unit,
+    discoveredMac: com.kaca.android.DiscoveredMac? = null,
     onScanQr: () -> Unit,
     onManualConnect: (host: String, port: Int, quality: Int) -> Unit,
     onStopMirror: () -> Unit,
@@ -189,7 +190,10 @@ fun MainScreen(
                                 onStateChange(AppState.Manual)
                                 onRecentDevice(ip)
                             },
-                            recentDevices = recentDevices
+                            recentDevices = recentDevices,
+                            discoveredMac = discoveredMac?.let { mac ->
+                                RecentDevice(mac.hostname.ifEmpty { mac.ip }, mac.ip, "Otomatis")
+                            }
                         )
                         AppState.Scanning -> ScanningState(
                             onCancel = { onStateChange(AppState.Initial) }
@@ -369,7 +373,8 @@ private fun InitialState(
     onScan: () -> Unit,
     onManual: () -> Unit,
     onRecentDevice: (String) -> Unit,
-    recentDevices: List<RecentDevice>
+    recentDevices: List<RecentDevice>,
+    discoveredMac: RecentDevice? = null,
 ) {
     Column(
         modifier = Modifier
@@ -397,6 +402,29 @@ private fun InitialState(
             lineHeight = 18.sp,
             modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp)
         )
+
+        // Jika ada Mac yang terdeteksi otomatis, tampilkan sebagai tombol cepat
+        if (discoveredMac != null) {
+            Button(
+                onClick = { onRecentDevice(discoveredMac.ip) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Emerald600)
+            ) {
+                Box(
+                    Modifier.size(16.dp).background(White, CircleShape).padding(3.dp)
+                        .background(StatusActive, CircleShape)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "HUBUNGKAN KE ${discoveredMac.name.uppercase()}",
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
 
         Spacer(Modifier.weight(1f))
 

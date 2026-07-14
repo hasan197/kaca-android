@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.kaca.android.ui.AppState
 import com.kaca.android.ui.MainScreen
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -25,6 +27,7 @@ class MainActivity : ComponentActivity() {
     private var pendingQrPort: String? = null
 
     private var appState = mutableStateOf(AppState.Initial)
+    private var discoveredMac = mutableStateOf<DiscoveredMac?>(null)
 
     private val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -87,11 +90,19 @@ class MainActivity : ComponentActivity() {
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         appState.value = if (MirrorService.isConnected(this)) AppState.Connected else AppState.Initial
 
+        // Auto-discover Mac via UDP multicast
+        lifecycleScope.launch {
+            MulticastDiscoveryManager.discoveries(this).collect { mac ->
+                discoveredMac.value = mac
+            }
+        }
+
         setContent {
             Surface(modifier = Modifier.fillMaxSize()) {
                 MainScreen(
                     state = appState.value,
                     onStateChange = { appState.value = it },
+                    discoveredMac = discoveredMac.value,
                     onScanQr = {
                         try {
                             qrScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
