@@ -26,6 +26,7 @@ import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.ByteBuffer
@@ -44,6 +45,12 @@ class MirrorService : Service() {
 
     @Volatile
     private var running = false
+
+    /// Apakah socket saat ini hidup & bisa dipakai untuk write?
+    /// Di-set false saat write error atau remote menutup koneksi.
+    /// Main loop memeriksa flag ini untuk trigger reconnect.
+    @Volatile
+    private var socketAlive = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -80,25 +87,7 @@ class MirrorService : Service() {
         port: Int,
         quality: Int,
     ) {
-        // 1. Connect ke Mac
-        Log.i(TAG, "connecting to $host:$port")
-        val s = Socket()
-        s.connect(InetSocketAddress(host, port), 10_000)
-        s.tcpNoDelay = true
-        s.soTimeout = 0
-        socket = s
-        val out = DataOutputStream(s.getOutputStream().buffered())
-        socketOut = out
-
-        // Simpan koneksi berhasil ke recent list
-        saveRecentConnection(this, host, port)
-        sessionActive = true
-
-        // Send hello
-        out.write(HELLO)
-        out.flush()
-
-        // 2. Setup MediaProjection (dari static variable yg diset MainActivity)
+        // 1. Setup MediaProjection (one-time — tidak perlu re-request saat reconnect)
         val resultCode = pendingResultCode
         val data = pendingResultData
         if (data == null) {
@@ -128,7 +117,7 @@ class MirrorService : Service() {
             }
         }, null)
 
-        // 3. Determine screen size (max 720p untuk jaga bandwidth)
+        // 2. Determine screen size (max 720p untuk jaga bandwidth)
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
@@ -152,7 +141,7 @@ class MirrorService : Service() {
 
         Log.i(TAG, "virtual display size: ${targetW}x${targetH}")
 
-        // 4. ImageReader
+        // 3. ImageReader (one-time — tetap capture frame bahkan saat reconnect)
         workerThread = HandlerThread("ImageReader").also { it.start() }
         workerHandler = Handler(workerThread!!.looper)
 
@@ -173,7 +162,7 @@ class MirrorService : Service() {
             }
         }, workerHandler)
 
-        // 5. VirtualDisplay
+        // 4. VirtualDisplay (one-time)
         val density = metrics.densityDpi
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "Kaca",
@@ -183,12 +172,106 @@ class MirrorService : Service() {
         )
 
         running = true
+
+        // 5. Connection loop dengan auto-reconnect
+        var retryCount = 0
+        val maxRetries = 3
+
+        while (running && !Thread.currentThread().isInterrupted) {
+            try {
+                connectAndStream(host, port)
+                // connectAndStream returned normally = remote closed cleanly
+                // Reset retry count kalau sebelumnya sukses stream lama
+                if (socketAlive) {
+                    retryCount = 0
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "stream interrupted: ${e::class.java.simpleName}: ${e.message}")
+
+                // Pastikan socket lama di-cleanup
+                socketAlive = false
+                socketOut = null
+                try { socket?.close() } catch (_: Exception) {}
+                socket = null
+
+                if (!running) break
+
+                retryCount++
+                if (retryCount > maxRetries) {
+                    setError("Connection lost after $maxRetries retries: ${e.message}")
+                    break
+                }
+
+                // Backoff: 1s, 2s, 4s
+                val backoffMs = 1000L * (1 shl (retryCount - 1))
+                Log.i(TAG, "reconnecting in ${backoffMs}ms (attempt $retryCount/$maxRetries)")
+                updateNotification("Reconnecting... (attempt $retryCount/$maxRetries)")
+                try {
+                    Thread.sleep(backoffMs)
+                } catch (_: InterruptedException) {
+                    break
+                }
+            }
+        }
+
+        stopSelfSafely()
+    }
+
+    /// Connect ke Mac, kirim HELLO, lalu block sampai socket mati.
+    /// Throw IOException saat koneksi gagal atau socket ditutup remote.
+    private fun connectAndStream(host: String, port: Int) {
+        Log.i(TAG, "connecting to $host:$port")
+        val s = Socket()
+        s.connect(InetSocketAddress(host, port), 10_000)
+        s.tcpNoDelay = true
+        s.soTimeout = 0
+        socket = s
+        val out = DataOutputStream(s.getOutputStream().buffered())
+
+        synchronized(this) {
+            socketOut = out
+            socketAlive = true
+        }
+
+        // Simpan koneksi berhasil ke recent list
+        saveRecentConnection(this, host, port)
+        sessionActive = true
+        updateNotification("Mengirim layar ke $currentTarget")
+
+        // Send hello
+        out.write(HELLO)
+        out.flush()
+
         Log.i(TAG, "streaming started")
 
-        // Block sampai dihentikan
-        while (running && !Thread.currentThread().isInterrupted) {
-            Thread.sleep(200)
+        // Block sampai socket mati atau user stop.
+        // Kita monitor input stream — kalau read return -1 atau throw, socket closed.
+        val input = s.getInputStream()
+        val buf = ByteArray(1)
+        while (running && socketAlive && !Thread.currentThread().isInterrupted) {
+            val n = try {
+                input.read(buf)
+            } catch (_: Exception) {
+                -1
+            }
+            if (n < 0) {
+                // Remote menutup koneksi
+                throw IOException("socket closed by remote")
+            }
+            try {
+                Thread.sleep(50)
+            } catch (_: InterruptedException) {
+                break
+            }
         }
+
+        // Clean exit (running = false atau socketAlive = false)
+        synchronized(this) {
+            socketOut = null
+            socketAlive = false
+        }
+        try { socket?.close() } catch (_: Exception) {}
+        socket = null
     }
 
     private fun processFrame(image: Image, width: Int, height: Int, quality: Int) {
@@ -215,6 +298,8 @@ class MirrorService : Service() {
         val jpegBytes = baos.toByteArray()
 
         // Write frame: MAGIC | width | height | jpeg_len | jpeg
+        // Skip kalau socket sedang mati (sedang reconnect)
+        if (!socketAlive) return
         val out = socketOut ?: return
         synchronized(out) {
             try {
@@ -228,7 +313,9 @@ class MirrorService : Service() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "socket write failed: ${e.message}")
-                running = false
+                // Trigger reconnect — JANGAN set running = false.
+                // Main loop akan detect socketAlive = false & retry.
+                socketAlive = false
             }
         }
 
@@ -239,6 +326,7 @@ class MirrorService : Service() {
 
     private fun stopSelfSafely() {
         running = false
+        socketAlive = false
         try { virtualDisplay?.release() } catch (_: Exception) {}
         virtualDisplay = null
         try { imageReader?.close() } catch (_: Exception) {}
@@ -257,6 +345,22 @@ class MirrorService : Service() {
         clearConnectedState(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    /// Update teks notifikasi foreground service.
+    /// Dipakai saat status berubah: "Mengirim layar..." → "Reconnecting..." → "Mengirim layar..."
+    private fun updateNotification(text: String) {
+        try {
+            val channelId = "kaca_channel"
+            val notif: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("Kaca aktif")
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setOngoing(true)
+                .build()
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIF_ID, notif)
+        } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
