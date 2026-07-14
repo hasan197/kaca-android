@@ -4,6 +4,8 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -43,6 +45,12 @@ class MirrorService : Service() {
 
     private var socket: Socket? = null
     private var socketOut: DataOutputStream? = null
+
+    private var clipboardManager: ClipboardManager? = null
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+
+    @Volatile
+    private var suppressClipboardSend = false
 
     @Volatile
     private var running = false
@@ -174,6 +182,25 @@ class MirrorService : Service() {
 
         running = true
 
+        // 6. Clipboard sync
+        clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val cbListener = ClipboardManager.OnPrimaryClipChangedListener {
+            if (suppressClipboardSend) {
+                suppressClipboardSend = false
+                return@OnPrimaryClipChangedListener
+            }
+            val clip = clipboardManager?.primaryClip ?: return@OnPrimaryClipChangedListener
+            if (clip.itemCount == 0) return@OnPrimaryClipChangedListener
+            val text = clip.getItemAt(0).coerceToText(this@MirrorService)?.toString() ?: return@OnPrimaryClipChangedListener
+            if (text.isBlank()) return@OnPrimaryClipChangedListener
+            val out = socketOut ?: return@OnPrimaryClipChangedListener
+            try {
+                writeMessage(out, MSG_CLIPBOARD_TEXT, text.toByteArray(Charsets.UTF_8))
+            } catch (_: Exception) {}
+        }
+        clipboardManager?.addPrimaryClipChangedListener(cbListener)
+        clipboardListener = cbListener
+
         // 5. Connection loop dengan auto-reconnect
         var retryCount = 0
         val maxRetries = 3
@@ -283,7 +310,8 @@ class MirrorService : Service() {
             MSG_CLIPBOARD_TEXT -> {
                 val text = String(payload, Charsets.UTF_8)
                 Log.i(TAG, "clipboard from mac: ${text.take(100)}")
-                // TODO: Phase 1.1 — set clipboard
+                suppressClipboardSend = true
+                clipboardManager?.setPrimaryClip(ClipData.newPlainText("Kaca", text))
             }
             MSG_FIND_PHONE -> {
                 Log.i(TAG, "find phone requested")
@@ -380,6 +408,8 @@ class MirrorService : Service() {
     private fun stopSelfSafely() {
         running = false
         socketAlive = false
+        clipboardListener?.let { clipboardManager?.removePrimaryClipChangedListener(it) }
+        clipboardListener = null
         try { virtualDisplay?.release() } catch (_: Exception) {}
         virtualDisplay = null
         try { imageReader?.close() } catch (_: Exception) {}
