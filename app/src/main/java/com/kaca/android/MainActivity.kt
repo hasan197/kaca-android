@@ -134,6 +134,7 @@ class MainActivity : ComponentActivity() {
                     onCancel = {},
                     onRecentDevice = {}
                 )
+                KacaLogDialog()
             }
         }
     }

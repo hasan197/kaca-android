@@ -47,7 +47,7 @@ class MirrorService : Service() {
     private var socketOut: DataOutputStream? = null
 
     private var clipboardManager: ClipboardManager? = null
-    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    @Volatile private var localClipText: String? = null
 
     @Volatile
     private var suppressClipboardSend = false
@@ -182,24 +182,39 @@ class MirrorService : Service() {
 
         running = true
 
-        // 6. Clipboard sync
+        // 6. Clipboard sync — polling seperti di Mac (pbpaste)
         clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        val cbListener = ClipboardManager.OnPrimaryClipChangedListener {
-            if (suppressClipboardSend) {
-                suppressClipboardSend = false
-                return@OnPrimaryClipChangedListener
+        localClipText = readClipboardText()
+        Log.i(TAG, "clipboard poll started, SDK=${Build.VERSION.SDK_INT}, initial=$localClipText")
+        kacaLog("clipboard poll started, SDK=${Build.VERSION.SDK_INT}, init=${localClipText?.take(60)}")
+        thread(name = "clipboard-poll") {
+            var tick = 0
+            while (running) {
+                try {
+                    Thread.sleep(2000)
+                } catch (_: InterruptedException) { break }
+                if (!running) break
+                if (suppressClipboardSend) {
+                    suppressClipboardSend = false
+                    continue
+                }
+                // Try direct clipboard read (works when app is foreground)
+                var text = readClipboardText()
+                if (text == null) {
+                    // Fallback: accessibility service can read clipboard in background
+                    text = ClipboardAccessibilityService.latestText
+                }
+                if (++tick % 5 == 0) {
+                    kacaLog("poll-tick $tick a11y=${ClipboardAccessibilityService.isConnected} clip=${text?.take(60)}")
+                }
+                if (text != null && text != localClipText) {
+                    kacaLog("clipboard changed: old=${localClipText?.take(40)} new=${text.take(40)}")
+                    localClipText = text
+                    sendClipboardToMac(text)
+                }
             }
-            val clip = clipboardManager?.primaryClip ?: return@OnPrimaryClipChangedListener
-            if (clip.itemCount == 0) return@OnPrimaryClipChangedListener
-            val text = clip.getItemAt(0).coerceToText(this@MirrorService)?.toString() ?: return@OnPrimaryClipChangedListener
-            if (text.isBlank()) return@OnPrimaryClipChangedListener
-            val out = socketOut ?: return@OnPrimaryClipChangedListener
-            try {
-                writeMessage(out, MSG_CLIPBOARD_TEXT, text.toByteArray(Charsets.UTF_8))
-            } catch (_: Exception) {}
+            kacaLog("clipboard poll thread exited")
         }
-        clipboardManager?.addPrimaryClipChangedListener(cbListener)
-        clipboardListener = cbListener
 
         // 5. Connection loop dengan auto-reconnect
         var retryCount = 0
@@ -248,6 +263,7 @@ class MirrorService : Service() {
     @Throws(IOException::class)
     private fun connectAndStream(host: String, port: Int) {
         Log.i(TAG, "connecting to $host:$port")
+        kacaLog("connecting to $host:$port")
         val s = Socket()
         s.connect(InetSocketAddress(host, port), 10_000)
         s.tcpNoDelay = true
@@ -271,6 +287,7 @@ class MirrorService : Service() {
         }
         sessionActive = true
         Log.i(TAG, "streaming started")
+        kacaLog("socket handshake OK, socketAlive=$socketAlive")
 
         // Message loop: baca pesan masuk dari server
         val input = DataInputStream(s.getInputStream())
@@ -310,6 +327,8 @@ class MirrorService : Service() {
             MSG_CLIPBOARD_TEXT -> {
                 val text = String(payload, Charsets.UTF_8)
                 Log.i(TAG, "clipboard from mac: ${text.take(100)}")
+                kacaLog("clipboard from mac: ${text.take(80)}")
+                localClipText = text
                 suppressClipboardSend = true
                 clipboardManager?.setPrimaryClip(ClipData.newPlainText("Kaca", text))
             }
@@ -324,6 +343,38 @@ class MirrorService : Service() {
     }
 
     /// Encode message: [type(1) | len(4) | payload(N)]
+    private fun readClipboardText(): String? {
+        val cm = clipboardManager ?: return null
+        val clip = cm.primaryClip
+        if (clip == null) {
+            kacaLog("readClipboardText: primaryClip null (SDK=${Build.VERSION.SDK_INT})")
+            return null
+        }
+        if (clip.itemCount == 0) return null
+        val item = clip.getItemAt(0)
+        val text = item.coerceToText(this@MirrorService)?.toString()
+        return text?.takeIf { it.isNotBlank() }
+    }
+
+    private fun sendClipboardToMac(text: String) {
+        kacaLog("sendClipboardToMac: ${text.take(80)}, socketAlive=$socketAlive")
+        var attempts = 0
+        while (attempts < 30 && (socketOut == null || !socketAlive)) {
+            try { Thread.sleep(100) } catch (_: InterruptedException) { return }
+            attempts++
+        }
+        val out = socketOut ?: run {
+            kacaLog("sendClipboardToMac: no socket, skipped")
+            return
+        }
+        try {
+            writeMessage(out, MSG_CLIPBOARD_TEXT, text.toByteArray(Charsets.UTF_8))
+            kacaLog("sendClipboardToMac: sent OK")
+        } catch (e: Exception) {
+            kacaLog("sendClipboardToMac failed: ${e.message}")
+        }
+    }
+
     @Throws(IOException::class)
     private fun writeMessage(out: DataOutputStream, type: Int, payload: ByteArray) {
         synchronized(out) {
@@ -408,8 +459,6 @@ class MirrorService : Service() {
     private fun stopSelfSafely() {
         running = false
         socketAlive = false
-        clipboardListener?.let { clipboardManager?.removePrimaryClipChangedListener(it) }
-        clipboardListener = null
         try { virtualDisplay?.release() } catch (_: Exception) {}
         virtualDisplay = null
         try { imageReader?.close() } catch (_: Exception) {}
