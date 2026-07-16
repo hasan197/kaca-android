@@ -113,6 +113,7 @@ fun MainScreen(
     onStopMirror: () -> Unit,
     onCancel: () -> Unit,
     onRecentDevice: (String) -> Unit,
+    onOpenAccessibility: () -> Unit = {},
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var hostIp by remember { mutableStateOf(
@@ -193,7 +194,8 @@ fun MainScreen(
                             recentDevices = recentDevices,
                             discoveredMac = discoveredMac?.let { mac ->
                                 RecentDevice(mac.hostname.ifEmpty { mac.ip }, mac.ip, "Otomatis")
-                            }
+                            },
+                            onOpenAccessibility = onOpenAccessibility,
                         )
                         AppState.Scanning -> ScanningState(
                             onCancel = { onStateChange(AppState.Initial) }
@@ -375,6 +377,7 @@ private fun InitialState(
     onRecentDevice: (String) -> Unit,
     recentDevices: List<RecentDevice>,
     discoveredMac: RecentDevice? = null,
+    onOpenAccessibility: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -487,6 +490,16 @@ private fun InitialState(
             RecentDeviceItem(device, onClick = { onRecentDevice(device.ip) })
             Spacer(Modifier.height(8.dp))
         }
+
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Sync clipboard dari background >",
+            fontSize = 11.sp,
+            color = BrandBlue,
+            modifier = Modifier
+                .clickable { onOpenAccessibility() }
+                .padding(vertical = 4.dp)
+        )
     }
 }
 
